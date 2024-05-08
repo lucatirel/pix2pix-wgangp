@@ -1,7 +1,12 @@
 # Mine
-dataset/**
-.venv/**
-runs/**
+!dataset/
+dataset/*
+!.venv/
+.venv/*
+!runs/
+runs/*
+!last_run/
+last_run/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

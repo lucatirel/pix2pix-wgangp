@@ -22,7 +22,7 @@ def process_images_in_folder(folder_path, output_folder):
                                    blur_noise=-1,
                                    blur_noise_kernel=(5, 5),
                                    wave_pattern=0,
-                                   edge_effect=0)
+                                   edge_effect=0,)
     
     
     # Iterate over all files in the given folder.

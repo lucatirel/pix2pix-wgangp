@@ -5,13 +5,12 @@ import time
 from typing import Any, Dict, List, Tuple, Union
 
 import torch
-from torch.nn import Module
-from torch.optim import Optimizer
-from torchsummary import summary
-
 from gan_model_discriminator import PatchGANDiscriminator
 from gan_model_generator import ResNet6Generator
 from gan_model_wrapper import WrappedModel
+from torch.nn import Module
+from torch.optim import Optimizer
+from torchsummary import summary
 
 
 def clean_directory(directory_path: str) -> None:
@@ -82,7 +81,7 @@ def load_models_from_checkpoint(
 
         generator.load_state_dict(checkpoint["generator_state_dict"])
 
-        best_G_loss = checkpoint["best_G_loss"]
+        best_G_loss = 10  # checkpoint["best_G_loss"]
 
         print(
             f"Loaded checkpoint '{filepath}', starting from epoch {start_epoch} with best generator loss {best_G_loss}"
@@ -143,6 +142,7 @@ def create_dirs_tree(
         clamp_value,
         loss_mode,
         use_tanh,
+        checkpoint_path,
     ) = params
 
     model_D = WrappedModel(discriminator)

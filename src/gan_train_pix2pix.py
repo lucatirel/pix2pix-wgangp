@@ -21,6 +21,12 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+torch.backends.cudnn.benchmark = True
+print("PyTorch Version:", torch.__version__)
+print("CUDA Available:", torch.cuda.is_available())
+print("CuDNN Version:", torch.backends.cudnn.version())
+print("CUDA Version:", torch.version.cuda)
+
 
 def train(
     generator: nn.Module,
@@ -68,7 +74,7 @@ def train(
 
                     # For each image in the batch
                     for img_index in range(batch_size_patches):
-                        print(f"{img_index}/{batch_size_patches}")
+                        print(f"Batch Step {img_index}/{batch_size_patches}")
                         noisy_img_patches, clean_img_patches = create_patches(
                             img_index,
                             noisy_imgs,
@@ -113,9 +119,9 @@ def train(
                         running_GAN_loss.append(GAN_loss.item())
                         running_L1_loss.append(L1_loss.item())
 
-                    print(
-                        f"Batch {i+1}/{len(train_dataloader)} Loss_D: {D_loss:.4f} Loss_G: {G_loss:.4f}"
-                    )
+                    # print(
+                    #     f"Batch {i+1}/{len(train_dataloader)} Loss_D: {D_loss:.4f} Loss_G: {G_loss:.4f}"
+                    # )
                     epoch_G_loss += G_loss
 
                     # TRAINING LOGS + INFERENCE STEP
@@ -189,6 +195,8 @@ def train(
             discriminator,
             optimizer_G,
             optimizer_D,
+            scheduler_G,
+            scheduler_D,
             epoch,
             valid_dataloader,
             avg_G_loss_val,
@@ -216,21 +224,22 @@ dataset_dir = os.path.join(
 )  # R"C:\Users\Luca Tirel\Desktop\Denoising\datasets"
 
 # PARAMETRI TRAINING
-batch_size = 32  # 128
-lr_generator = 0.0002  # 0.0002
-lr_discriminator = 0.0002  # 0.0002
-epochs = 20
+batch_size = 64  # 32  # 128
+lr_generator = 0.00002  # 0.0002
+lr_discriminator = 0.000002  # 0.0002
+epochs = 100
 training_percentage = 0.8
 patch_size = 256
 crop_size = 1024
 patch_stride = 128
 lambd = 10  # 30_000
 use_wgangp = True
-gp_weight = 10
+gp_weight = 100
 clamp_value = 0.01
 loss_mode = "vanilla"
 training_log_step = 5
-use_tanh = True
+use_tanh = False
+checkpoint_path = R""
 
 training_params = (
     batch_size,
@@ -247,6 +256,7 @@ training_params = (
     clamp_value,
     loss_mode,
     use_tanh,
+    checkpoint_path,
 )
 
 
@@ -300,6 +310,3 @@ if __name__ == "__main__":
         clamp_value=clamp_value,
         training_log_step=training_log_step,
     )
-
-
-# ===========================================================================================================

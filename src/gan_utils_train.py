@@ -1,8 +1,14 @@
+import os
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
+from gan_dataloader import ImageDataloader
+from gan_loss import GANLoss
+from gan_model_discriminator import PatchGANDiscriminator
+from gan_model_generator import ResNet6Generator
+from gan_utils import create_dirs_tree, save_checkpoint
 from pytorch_msssim import ssim
 from torch import Tensor
 from torch.nn.modules.loss import L1Loss
@@ -11,12 +17,6 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
-
-from gan_dataloader import ImageDataloader
-from gan_loss import GANLoss
-from gan_model_discriminator import PatchGANDiscriminator
-from gan_model_generator import ResNet6Generator
-from gan_utils import create_dirs_tree, save_checkpoint
 
 
 def compute_gradient_penalty(
@@ -76,7 +76,21 @@ def compute_gradient_penalty(
 
 def initialize_training_pipeline(
     training_params: Tuple[
-        int, float, float, int, float, int, int, int, int, bool, int, float, str, bool
+        int,
+        float,
+        float,
+        int,
+        float,
+        int,
+        int,
+        int,
+        int,
+        bool,
+        int,
+        float,
+        str,
+        bool,
+        str,
     ],
     dataset_dir: str,
 ) -> Tuple[
@@ -144,11 +158,11 @@ def initialize_training_pipeline(
         clamp_value,
         loss_mode,
         use_tanh,
+        checkpoint_path,
     ) = training_params
 
     generator = ResNet6Generator(patch_size=patch_size, use_tanh=use_tanh).to(device)
     discriminator = PatchGANDiscriminator(patch_size=patch_size).to(device)
-
     (
         clean_folder,
         noise_folder,
@@ -196,6 +210,18 @@ def initialize_training_pipeline(
 
     writer = SummaryWriter(tensorboard_logdir)
 
+    if checkpoint_path:
+        load_full_checkpoint(
+            checkpoint_path,
+            generator,
+            discriminator,
+            optimizer_G,
+            optimizer_D,
+            scheduler_G,
+            scheduler_D,
+            device,
+        )
+
     initialization = (
         device,
         generator,
@@ -221,6 +247,37 @@ def initialize_training_pipeline(
     )
 
     return initialization
+
+
+def load_full_checkpoint(
+    filepath: str,
+    generator: nn.Module,
+    discriminator: nn.Module,
+    optimizer_G: torch.optim.Optimizer,
+    optimizer_D: torch.optim.Optimizer,
+    scheduler_G: torch.optim.lr_scheduler._LRScheduler,
+    scheduler_D: torch.optim.lr_scheduler._LRScheduler,
+    device: torch.device,
+) -> Tuple[int, float]:
+    if os.path.isfile(filepath):
+        print(f"Loading checkpoint '{filepath}'")
+        checkpoint = torch.load(filepath, map_location=device)
+        generator.load_state_dict(checkpoint["generator_state_dict"])
+        discriminator.load_state_dict(checkpoint["discriminator_state_dict"])
+        optimizer_G.load_state_dict(checkpoint["optimizer_G_state_dict"])
+        optimizer_D.load_state_dict(checkpoint["optimizer_D_state_dict"])
+        scheduler_G.load_state_dict(checkpoint["scheduler_G_state_dict"])
+        scheduler_D.load_state_dict(checkpoint["scheduler_D_state_dict"])
+
+        start_epoch = checkpoint["epoch"]
+        best_G_loss = checkpoint["best_G_loss_val"]
+
+        print(
+            f"Resuming from epoch {start_epoch} with best generator loss of {best_G_loss}"
+        )
+
+    else:
+        print(f"No checkpoint found at '{filepath}'")
 
 
 def create_patches(
@@ -531,6 +588,8 @@ def save_best_model(
     discriminator: nn.Module,
     optimizer_G: torch.optim.Optimizer,
     optimizer_D: torch.optim.Optimizer,
+    scheduler_G: torch.optim.lr_scheduler._LRScheduler,
+    scheduler_D: torch.optim.lr_scheduler._LRScheduler,
     epoch: int,
     val_dataloader: DataLoader,
     G_loss: float,
@@ -575,6 +634,8 @@ def save_best_model(
         "discriminator_state_dict": discriminator.state_dict(),
         "optimizer_G_state_dict": optimizer_G.state_dict(),
         "optimizer_D_state_dict": optimizer_D.state_dict(),
+        "scheduler_G_state_dict": scheduler_G.state_dict(),
+        "scheduler_D_state_dict": scheduler_D.state_dict(),
         "best_G_loss_val": best_G_loss,
     }
 
