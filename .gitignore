@@ -1,11 +1,10 @@
 # Mine
-!dataset/
+!dataset/.gitkeep
 dataset/*
 !.venv/
 .venv/*
-!runs/
+!runs/.gitkeep
 runs/*
-!last_run/
 last_run/*
 
 # Byte-compiled / optimized / DLL files
