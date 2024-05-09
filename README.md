@@ -10,11 +10,12 @@ Open your terminal and clone the repository using the command: \
 `git clone https://github.com/lucatirel/pix2pix-wgangp`
 
 ### Step 2: Set Up the Virtual Environment
-After cloning the repository, navigate to the project folder:
+After cloning the repository, navigate to the project folder, then create and activate a Python virtual environment:
+```
 cd project_folder_name
-Create and activate a Python virtual environment:
 python -m venv .venv
 source .venv/bin/activate  # On Windows use .venv\Scripts\activate
+```
 
 ### Step 3: Install Dependencies
 Install the necessary dependencies using `pip`:
