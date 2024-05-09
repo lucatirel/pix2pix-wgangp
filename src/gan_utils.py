@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import sys
@@ -97,9 +98,7 @@ def create_dirs_tree(
     dataset_dir: str,
     generator: ResNet6Generator,
     discriminator: PatchGANDiscriminator,
-    params: Tuple[
-        int, float, float, int, float, int, int, int, int, bool, int, float, str, bool
-    ],
+    cfg,
 ) -> List[str]:
     """
     Function to create the directories for the clean and noisy images, runs, logs, checkpoints, and parameters file.
@@ -127,23 +126,23 @@ def create_dirs_tree(
     Returns:
     dirs_paths (List[str]): List of created directories' paths.
     """
-    (
-        batch_size,
-        lr_generator,
-        lr_discriminator,
-        epochs,
-        training_percentage,
-        patch_size,
-        crop_size,
-        patch_stride,
-        lambd,
-        use_wgangp,
-        gp_weight,
-        clamp_value,
-        loss_mode,
-        use_tanh,
-        checkpoint_path,
-    ) = params
+    # (
+    #     batch_size,
+    #     lr_generator,
+    #     lr_discriminator,
+    #     epochs,
+    #     training_percentage,
+    #     patch_size,
+    #     crop_size,
+    #     patch_stride,
+    #     lambd,
+    #     use_wgangp,
+    #     gp_weight,
+    #     clamp_value,
+    #     loss_mode,
+    #     use_tanh,
+    #     checkpoint_path,
+    # ) = params
 
     model_D = WrappedModel(discriminator)
 
@@ -177,30 +176,34 @@ def create_dirs_tree(
     # save the current parameters
     params_file_path = os.path.join(current_run_folder, "params.txt")
     with open(params_file_path, "w", encoding="utf-8") as f:
-        f.write(f"epochs: {epochs}\n")
-        f.write(f"training_percentage: {training_percentage}\n")
+        f.write(f"epochs: {cfg['training']['epochs']}\n")
+        f.write(f"training_percentage: {cfg['training']['training_percentage']}\n")
 
-        f.write(f"batch_size: {batch_size}\n")
-        f.write(f"lr_generator: {lr_generator}\n")
-        f.write(f"lr_discriminator: {lr_discriminator}\n")
-        f.write(f"lambd: {lambd}\n")
-        f.write(f"use_wgangp: {use_wgangp}\n")
-        f.write(f"gp_weight: {gp_weight}\n")
-        f.write(f"clamp_value: {clamp_value}\n")
-        f.write(f"loss_mode: {loss_mode}\n")
+        f.write(f"batch_size: {cfg['training']['batch_size']}\n")
+        f.write(f"lr_generator: {cfg['training']['lr_generator']}\n")
+        f.write(f"lr_discriminator: {cfg['training']['lr_discriminator']}\n")
+        f.write(f"lambd: {cfg['training']['lambd']}\n")
+        f.write(f"use_wgangp: {cfg['training']['use_wgangp']}\n")
+        f.write(f"gp_weight: {cfg['training']['gp_weight']}\n")
+        f.write(f"clamp_value: {cfg['training']['clamp_value']}\n")
+        f.write(f"loss_mode: {cfg['training']['loss_mode']}\n")
 
-        f.write(f"patch_size: {patch_size}\n")
-        f.write(f"crop_size: {crop_size}\n")
-        f.write(f"patch_stride: {patch_stride}\n")
-        f.write(f"use_tanh: {use_tanh}\n")
+        f.write(f"patch_size: {cfg['training']['patch_size']}\n")
+        f.write(f"crop_size: {cfg['training']['crop_size']}\n")
+        f.write(f"patch_stride: {cfg['training']['patch_stride']}\n")
+        f.write(f"use_tanh: {cfg['training']['use_tanh']}\n")
 
         original_stdout = sys.stdout
         sys.stdout = f
 
         f.write("\nSummary of Generator:\n")
-        summary(generator, (1, patch_size, patch_size))
+        summary(
+            generator, (1, cfg["training"]["patch_size"], cfg["training"]["patch_size"])
+        )
         f.write("\nSummary of Discriminator:\n")
-        summary(model_D, (2, patch_size, patch_size))
+        summary(
+            model_D, (2, cfg["training"]["patch_size"], cfg["training"]["patch_size"])
+        )
 
         # Reset the standard output to its original value
         sys.stdout = original_stdout
@@ -216,3 +219,9 @@ def create_dirs_tree(
         params_file_path,
     ]
     return dirs_paths
+
+
+def read_json_config(json_path="config/config.json"):
+    with open(json_path, "r") as json_file:
+        json_data = json.load(json_file)
+    return json_data

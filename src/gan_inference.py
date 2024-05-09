@@ -57,16 +57,16 @@ def merge_patches(patches, rows, cols, patch_size, stride, apply_window=False):
     return output_image
 
 
-def main_inference(
-    checkpoint_path,
-    imgs_path,
-    patch_size=256,
-    stride=128,
-    with_true_clean=True,
-    denoising_steps=1,
-    apply_smooth_window=False,
-    use_tanh=False,
-):
+def main_inference(cfg):
+    checkpoint_path = cfg["inference"]["model_path"]
+    imgs_path = cfg["inference"]["testing_imgs_path"]
+    patch_size = cfg["inference"]["patch_size"]
+    stride = cfg["inference"]["cleaning_stride"]
+    with_true_clean = cfg["inference"]["with_true_clean"]
+    denoising_steps = cfg["inference"]["denoising_steps"]
+    apply_smooth_window = cfg["inference"]["apply_smooth_window"]
+    use_tanh = cfg["inference"]["use_tanh"]
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     generator = load_models_from_checkpoint(checkpoint_path, device, patch_size)
     generator.eval()
@@ -198,25 +198,11 @@ def main_inference(
             # plt.show()
 
 
-checkpoint_path = R"C:\Users\Luca\Desktop\pix2pix-wgangp\runs\run_denoisegan_20240507-234550\checkpoints\model_best.pth.tar"
-testing_imgs_path = R"C:\Users\Luca\Desktop\pix2pix-wgangp\dataset\testing"
-
-CLEANING_STRIDE = 128
-DENOISING_STEPS = 1
-APPLY_SMOOTH_WINDOW = False
-USE_TANH = False
+cfg = read_json_config()
 
 if __name__ == "__main__":
     try:
-        main_inference(
-            checkpoint_path,
-            testing_imgs_path,
-            stride=CLEANING_STRIDE,
-            with_true_clean=True,
-            denoising_steps=DENOISING_STEPS,
-            apply_smooth_window=APPLY_SMOOTH_WINDOW,
-            use_tanh=USE_TANH,
-        )
+        main_inference(cfg)
     except Exception as exc:
         print(exc)
         breakpoint()

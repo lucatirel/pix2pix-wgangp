@@ -1,0 +1,31 @@
+{
+    "training": {
+        "dataset_dir": "C:/Users/Luca/Desktop/pix2pix-wgangp/dataset",
+        "epochs": 100,
+        "batch_size": 64,
+        "lr_generator": 0.00002,
+        "lr_discriminator": 0.000002,
+        "training_percentage": 0.8,
+        "patch_size": 256,
+        "crop_size": 1024,
+        "patch_stride": 128,
+        "lambd": 10,
+        "use_wgangp": true,
+        "gp_weight": 100,
+        "clamp_value": "",
+        "loss_mode": "vanilla",
+        "use_tanh": false,
+        "checkpoint_path": "",
+        "training_log_step": 5
+    },
+    "inference": {
+        "model_path": "C:/Users/Luca/Desktop/pix2pix-wgangp/runs/run_denoisegan_20240507-234550/checkpoints/model_best.pth.tar",
+        "testing_imgs_path": "C:/Users/Luca/Desktop/pix2pix-wgangp/dataset/testing",
+        "use_tanh": false,
+        "denoising_steps": 1,
+        "patch_size": 256,
+        "cleaning_stride": 128,
+        "apply_smooth_window": false,
+        "with_true_clean": true
+    }
+}
