@@ -18,13 +18,14 @@ source .venv/bin/activate  # On Windows use .venv\Scripts\activate
 ```
 
 ### Step 3: Install Dependencies
-Install the necessary dependencies using `pip`:
-pip install -r requirements.txt
+Install the necessary dependencies using pip: \ 
+`pip install -r requirements.txt`
 
 ### Step 4: Download and Prepare the Dataset
-Download the dataset from the provided URL:
+Download the dataset from the provided URL: \
 https://drive.google.com/drive/folders/1FGC1mz4T8WYno-be1YOOrzy6DSVDaKh-?usp=sharing
-After downloading, unzip it into the project folder while maintaining the following folder structure:
+After downloading, unzip it into the project folder while maintaining the following folder structure: \
+```
 dataset/
 ├── clean/
 ├── noisy/
@@ -32,6 +33,8 @@ dataset/
     ├── clean/
     ├── denoised/
     └── noisy/
+```
+
 Ensure the folder structure is exactly as shown above to avoid execution issues.
 
 ## Usage
