@@ -7,9 +7,7 @@ Before you begin, make sure you have Python and `git` installed on your system. 
 
 ### Step 1: Clone the Repository 
 Open your terminal and clone the repository using the command: \
-'
-git clone https://github.com/lucatirel/pix2pix-wgangp
-'
+`git clone https://github.com/lucatirel/pix2pix-wgangp`
 
 ### Step 2: Set Up the Virtual Environment
 After cloning the repository, navigate to the project folder:
