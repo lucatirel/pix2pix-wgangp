@@ -12,7 +12,7 @@ Open your terminal and clone the repository using the command: \
 ### Step 2: Set Up the Virtual Environment
 After cloning the repository, navigate to the project folder, then create and activate a Python virtual environment:
 ```
-cd project_folder_name
+cd pix2pix-wgangp
 python -m venv .venv
 source .venv/bin/activate  # On Windows use .venv\Scripts\activate
 ```
@@ -41,7 +41,8 @@ dataset/
 Ensure the folder structure is exactly as shown above to avoid execution issues.
 
 ## Usage
-After following the installation steps, adjust parameters defined in src/gan_train_pix2pix.py and launch training process with the following command:
-python src/gan_train_pix2pix.py
+After following the installation steps, adjust parameters defined in `config/config.json` and start training process with the following command:
+
+`python src/gan_train_pix2pix.py`
 
 
