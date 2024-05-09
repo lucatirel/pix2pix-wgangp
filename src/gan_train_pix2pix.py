@@ -1,5 +1,3 @@
-import os
-
 import torch
 import torch.nn as nn
 from alive_progress import alive_bar
@@ -21,6 +19,8 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+from src.gan_utils import read_json_config
+
 torch.backends.cudnn.benchmark = True
 print("PyTorch Version:", torch.__version__)
 print("CUDA Available:", torch.cuda.is_available())
@@ -41,25 +41,18 @@ def train(
     scheduler_D: _LRScheduler,
     writer: SummaryWriter,
     device: torch.device,
-    epochs: int = 20,
+    cfg,
     tensorboard_logdir: str = "logs",
-    patch_size: int = 64,
-    patch_stride: int = 32,
     save_dir: str = "./",
-    n_save: int = 5,
-    lambd: float = 100,
     imgs_to_display: int = 1,
     patches_to_display: int = 5,
-    use_wgangp: bool = False,
-    gp_weight: float = 10,
-    clamp_value: float = 0.01,
-    training_log_step: int = 20,
 ) -> None:
+
     best_G_loss = float("inf")
     save_counter = 0
 
-    for epoch in range(epochs):
-        print("\n" + "=" * 15 + f" Epoch {epoch+1}/{epochs} " + "=" * 15)
+    for epoch in range(cfg["training"]["epochs"]):
+        print(f"\n{"="*15} Epoch {epoch+1}/{cfg['training']['epochs']} {"=" * 15}")
         running_GAN_loss = []
         running_L1_loss = []
         epoch_G_loss = 0
@@ -79,8 +72,7 @@ def train(
                             img_index,
                             noisy_imgs,
                             clean_imgs,
-                            patch_size,
-                            patch_stride,
+                            cfg,
                             device,
                         )
 
@@ -93,8 +85,7 @@ def train(
                             criterion_L1,
                             noisy_img_patches,
                             clean_img_patches,
-                            use_wgangp,
-                            lambd,
+                            cfg,
                         )
 
                         # TRAIN DISCRIMINATOR
@@ -110,9 +101,7 @@ def train(
                             clean_img_patches,
                             noisy_img_patches,
                             gen_img_patches,
-                            use_wgangp,
-                            gp_weight,
-                            clamp_value,
+                            cfg,
                             device,
                         )
 
@@ -125,7 +114,7 @@ def train(
                     epoch_G_loss += G_loss
 
                     # TRAINING LOGS + INFERENCE STEP
-                    if (i + 1) % training_log_step == 0:
+                    if (i + 1) % cfg["training"]["training_log_step"] == 0:
                         logging_losses = (
                             running_GAN_loss,
                             running_L1_loss,
@@ -144,7 +133,7 @@ def train(
                             logging_losses,
                             train_dataloader,
                             writer,
-                            use_wgangp,
+                            cfg["training"]["use_wgangp"],
                         )
 
                         running_GAN_loss, running_L1_loss = [], []
@@ -165,9 +154,7 @@ def train(
                     bar()
 
                 except Exception as e:
-                    print(
-                        f"!!!!!!!!!!!!!!! \nERROR IN THE BATCH {i}: {str(e)} \n!!!!!!!!!!!!!!!"
-                    )
+                    print(f"!!! \nERROR IN THE BATCH {i}: {str(e)} \n!!!!")
                     raise
 
         # Step the schedulers
@@ -181,9 +168,7 @@ def train(
             valid_dataloader,
             criterion_GAN,
             criterion_L1,
-            lambd,
-            patch_size,
-            patch_stride,
+            cfg,
             device,
         )
 
@@ -204,12 +189,9 @@ def train(
             best_G_loss,
             save_dir,
             save_counter,
-            n_save,
+            cfg["training"]["epochs"],
         )
-
         save_counter += 1
-
-        # Log validation results
         log_validation_results(writer, epoch, validation_results)
 
     writer.flush()
@@ -218,46 +200,8 @@ def train(
 
 # =====================================================================================
 
-# PATHS COMPUTER LUCA
-dataset_dir = os.path.join(
-    os.getcwd(), "dataset"
-)  # R"C:\Users\Luca Tirel\Desktop\Denoising\datasets"
 
-# PARAMETRI TRAINING
-batch_size = 64  # 32  # 128
-lr_generator = 0.00002  # 0.0002
-lr_discriminator = 0.000002  # 0.0002
-epochs = 100
-training_percentage = 0.8
-patch_size = 256
-crop_size = 1024
-patch_stride = 128
-lambd = 10  # 30_000
-use_wgangp = True
-gp_weight = 100
-clamp_value = 0.01
-loss_mode = "vanilla"
-training_log_step = 5
-use_tanh = False
-checkpoint_path = R""
-
-training_params = (
-    batch_size,
-    lr_generator,
-    lr_discriminator,
-    epochs,
-    training_percentage,
-    patch_size,
-    crop_size,
-    patch_stride,
-    lambd,
-    use_wgangp,
-    gp_weight,
-    clamp_value,
-    loss_mode,
-    use_tanh,
-    checkpoint_path,
-)
+cfg = read_json_config()
 
 
 if __name__ == "__main__":
@@ -265,7 +209,6 @@ if __name__ == "__main__":
         device,
         generator,
         discriminator,
-        dataset,
         train_dataloader,
         valid_dataloader,
         criterion_GAN,
@@ -275,15 +218,10 @@ if __name__ == "__main__":
         scheduler_G,
         scheduler_D,
         writer,
-        clean_folder,
-        noise_folder,
-        runs_folder,
-        current_run_folder,
         tensorboard_logdir,
         checkpoint_dir,
-        last_run_folder,
-        params_file_path,
-    ) = initialize_training_pipeline(training_params, dataset_dir)
+    ) = initialize_training_pipeline(cfg)
+
 
     train(
         generator=generator,
@@ -298,15 +236,7 @@ if __name__ == "__main__":
         scheduler_D=scheduler_D,
         writer=writer,
         device=device,
-        epochs=epochs,
+        cfg=cfg,
         tensorboard_logdir=tensorboard_logdir,
         save_dir=checkpoint_dir,
-        lambd=lambd,
-        patch_size=patch_size,
-        patch_stride=patch_stride,
-        use_wgangp=use_wgangp,
-        n_save=epochs,
-        gp_weight=gp_weight,
-        clamp_value=clamp_value,
-        training_log_step=training_log_step,
     )

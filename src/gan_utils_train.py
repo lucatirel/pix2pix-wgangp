@@ -74,48 +74,7 @@ def compute_gradient_penalty(
     return gradient_penalty
 
 
-def initialize_training_pipeline(
-    training_params: Tuple[
-        int,
-        float,
-        float,
-        int,
-        float,
-        int,
-        int,
-        int,
-        int,
-        bool,
-        int,
-        float,
-        str,
-        bool,
-        str,
-    ],
-    dataset_dir: str,
-) -> Tuple[
-    torch.device,
-    ResNet6Generator,
-    PatchGANDiscriminator,
-    ImageDataloader,
-    DataLoader,
-    DataLoader,
-    GANLoss,
-    L1Loss,
-    AdamW,
-    AdamW,
-    StepLR,
-    StepLR,
-    SummaryWriter,
-    str,
-    str,
-    str,
-    str,
-    str,
-    str,
-    str,
-    str,
-]:
+def initialize_training_pipeline(cfg):
     """
     Initialize the training pipeline for a GAN network.
 
@@ -143,26 +102,14 @@ def initialize_training_pipeline(
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Running on: {device}")
-    (
-        batch_size,
-        lr_generator,
-        lr_discriminator,
-        epochs,
-        training_percentage,
-        patch_size,
-        crop_size,
-        patch_stride,
-        lambd,
-        use_wgangp,
-        gp_weight,
-        clamp_value,
-        loss_mode,
-        use_tanh,
-        checkpoint_path,
-    ) = training_params
 
-    generator = ResNet6Generator(patch_size=patch_size, use_tanh=use_tanh).to(device)
-    discriminator = PatchGANDiscriminator(patch_size=patch_size).to(device)
+    generator = ResNet6Generator(
+        patch_size=cfg["training"]["patch_size"], use_tanh=cfg["training"]["use_tanh"]
+    ).to(device)
+    discriminator = PatchGANDiscriminator(patch_size=cfg["training"]["patch_size"]).to(
+        device
+    )
+
     (
         clean_folder,
         noise_folder,
@@ -172,32 +119,40 @@ def initialize_training_pipeline(
         checkpoint_dir,
         last_run_folder,
         params_file_path,
-    ) = create_dirs_tree(dataset_dir, generator, discriminator, training_params)
+    ) = create_dirs_tree(cfg["training"]["dataset_dir"], generator, discriminator, cfg)
 
     # Load the dataloader
     dataset = ImageDataloader(
         noise_folder,
         clean_folder,
-        patch_size=patch_size,
-        crop_size=crop_size,
+        patch_size=cfg["training"]["patch_size"],
+        crop_size=cfg["training"]["crop_size"],
     )
 
     # Split dataset into training and validation
-    train_size = int(training_percentage * len(dataset))
+    train_size = int(cfg["training"]["training_percentage"] * len(dataset))
     valid_size = len(dataset) - train_size
     train_dataset, valid_dataset = random_split(dataset, [train_size, valid_size])
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
+    train_dataloader = DataLoader(
+        train_dataset, batch_size=cfg["training"]["batch_size"], shuffle=True
+    )
+    valid_dataloader = DataLoader(
+        valid_dataset, batch_size=cfg["training"]["batch_size"], shuffle=False
+    )
 
     # This GANLoss class encapsulates both LSGAN and vanilla GAN loss functions
-    criterion_GAN = GANLoss(loss_mode).to(device)
+    criterion_GAN = GANLoss(cfg["training"]["loss_mode"]).to(device)
     criterion_L1 = nn.L1Loss()
 
     # Separate optimizers for the generator and the discriminator
-    optimizer_G = AdamW(generator.parameters(), lr=lr_generator, betas=(0.5, 0.999))
+    optimizer_G = AdamW(
+        generator.parameters(), lr=cfg["training"]["lr_generator"], betas=(0.5, 0.999)
+    )
     optimizer_D = AdamW(
-        discriminator.parameters(), lr=lr_discriminator, betas=(0.5, 0.999)
+        discriminator.parameters(),
+        lr=cfg["training"]["lr_discriminator"],
+        betas=(0.5, 0.999),
     )
 
     # Defining learning rate schedulers
@@ -210,9 +165,9 @@ def initialize_training_pipeline(
 
     writer = SummaryWriter(tensorboard_logdir)
 
-    if checkpoint_path:
+    if cfg["training"]["checkpoint_path"]:
         load_full_checkpoint(
-            checkpoint_path,
+            cfg["training"]["checkpoint_path"],
             generator,
             discriminator,
             optimizer_G,
@@ -221,12 +176,10 @@ def initialize_training_pipeline(
             scheduler_D,
             device,
         )
-
     initialization = (
         device,
         generator,
         discriminator,
-        dataset,
         train_dataloader,
         valid_dataloader,
         criterion_GAN,
@@ -236,14 +189,8 @@ def initialize_training_pipeline(
         scheduler_G,
         scheduler_D,
         writer,
-        clean_folder,
-        noise_folder,
-        runs_folder,
-        current_run_folder,
         tensorboard_logdir,
         checkpoint_dir,
-        last_run_folder,
-        params_file_path,
     )
 
     return initialization
@@ -284,8 +231,7 @@ def create_patches(
     img_index: int,
     noisy_imgs: Tensor,
     clean_imgs: Tensor,
-    patch_size: int,
-    patch_stride: int,
+    cfg,
     device: torch.device,
 ) -> Tuple[Tensor, Tensor]:
     """
@@ -303,6 +249,9 @@ def create_patches(
     Returns:
         Tuple[Tensor, Tensor]: A tuple containing two tensors, where the first tensor represents patches from noisy images and the second tensor represents patches from clean images. Both tensors have the shape (N*H'*W', 1, patch_size, patch_size), where H' and W' are the new height and width after unfolding.
     """
+
+    patch_size = (cfg["training"]["patch_size"],)
+    patch_stride = (cfg["training"]["patch_stride"],)
 
     noisy_img_patches = (
         noisy_imgs[img_index]
@@ -332,8 +281,7 @@ def train_generator(
     l1_loss_criterion: L1Loss,
     noisy_img_patches: Tensor,
     clean_img_patches: Tensor,
-    wgangp_flag: bool,
-    lambda_value: float,
+    cfg,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     """
     Train generator model with respect to the inputs.
@@ -349,6 +297,8 @@ def train_generator(
     :param lambda_value: The weight for L1 loss in the combined loss.
     :return: The combined loss, adversarial loss, L1 loss, and generated image patches.
     """
+    wgangp_flag = cfg["training"]["use_wgangp"]
+    lambda_value = cfg["training"]["lambd"]
 
     optimizer_G.zero_grad()
 
@@ -378,9 +328,7 @@ def train_discriminator(
     clean_img_patches: Tensor,
     noisy_img_patches: Tensor,
     gen_img_patches: Tensor,
-    wgangp_flag: bool,
-    gp_weight: float,
-    clamp_value: float,
+    cfg,
     device: torch.device,
 ) -> Tuple[Tensor, Tensor, Tensor, Optional[Tensor]]:
     """
@@ -399,6 +347,10 @@ def train_discriminator(
 
     :return: Returns a 4-tuple containing the total discriminator loss, real loss, fake loss, and gradient penalty (if WGAN-GP is used).
     """
+
+    wgangp_flag = cfg["training"]["use_wgangp"]
+    gp_weight = cfg["training"]["gp_weight"]
+    clamp_value = cfg["training"]["clamp_value"]
 
     optimizer_D.zero_grad()
 
@@ -428,9 +380,9 @@ def train_discriminator(
     optimizer_D.step()
 
     # # Clip weights of discriminator in WGAN
-    # if wgangp_flag:
-    #     for p in discriminator.parameters():
-    #         p.data.clamp_(-clamp_value, clamp_value)
+    if wgangp_flag and clamp_value != "":
+        for p in discriminator.parameters():
+            p.data.clamp_(-clamp_value, clamp_value)
 
     return D_loss, D_real_loss, D_fake_loss, gradient_penalty if wgangp_flag else None
 
@@ -652,9 +604,7 @@ def validate(
     valid_dataloader: DataLoader,
     criterion_GAN: GANLoss,
     criterion_L1: L1Loss,
-    lambd: float,
-    patch_size: int,
-    patch_stride: int,
+    cfg,
     device: torch.device,
 ) -> Tuple[List[float]]:
     """
@@ -681,6 +631,10 @@ def validate(
             - avg_D_real_loss_val: The average discriminator loss on real samples.
             - avg_D_fake_loss_val: The average discriminator loss on fake samples.
     """
+
+    lambd = cfg["training"]["lambd"]
+    patch_size = cfg["training"]["patch_size"]
+    patch_stride = cfg["training"]["patch_stride"]
 
     with torch.no_grad():
         generator.eval()
