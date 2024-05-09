@@ -1,7 +1,7 @@
 # WGAN-GP DENOISING
 
 ## Prerequisites
-Before you begin, make sure you have Python and `git` installed on your system. This project has been tested with Python 3.12.3
+Before you begin, make sure you have Python and `git` installed on your system. If you want to use `CUDA`, be sure to have `pytorch` properly installed on your system matching specific `CUDA` version. This project has been tested with Python 3.12.3.
 
 ## Installation Instructions
 
@@ -41,8 +41,16 @@ dataset/
 Ensure the folder structure is exactly as shown above to avoid execution issues.
 
 ## Usage
+
+### Training
 After following the installation steps, adjust parameters defined in `config/config.json` and start training process with the following command:
 
 `python src/gan_train_pix2pix.py`
+
+
+### Inference
+The script used to perform inference is `src/gan_inference.py`. We provided our best performing pre-trained model in the same url of the dataset mentioned above, named `best_model.pth.tar`. To run inference train a new model or download the pretrained one. Then adjust inference settings in `config/config.json`, and launch inference on the testing set with: 
+
+`python src/gan_inference.py`
 
 
