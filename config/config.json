@@ -12,6 +12,7 @@
         "lambd": 10,
         "use_wgangp": true,
         "gp_weight": 100,
+        "clamp_weights": false,
         "clamp_value": "",
         "loss_mode": "vanilla",
         "use_tanh": false,
