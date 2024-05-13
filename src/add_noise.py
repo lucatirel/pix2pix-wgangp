@@ -7,6 +7,18 @@ from augraphy.default.pipeline import *
 from PIL import Image
 from tqdm import tqdm
 
+noise_model = BadPhotoCopy(
+    noise_type=1,
+    noise_iteration=(2, 3),
+    noise_size=(2, 3),
+    noise_sparsity=(0.35, 0.35),
+    noise_concentration=(0.3, 0.3),
+    blur_noise=-1,
+    blur_noise_kernel=(5, 5),
+    wave_pattern=0,
+    edge_effect=0,
+)
+
 
 def ensure_odd(number):
     """Ensure the number is odd."""
