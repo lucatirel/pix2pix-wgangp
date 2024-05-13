@@ -221,8 +221,9 @@ if __name__ == "__main__":
         tensorboard_logdir,
         checkpoint_dir,
     ) = initialize_training_pipeline(cfg)
-
-
+    
+    
+    
     train(
         generator=generator,
         discriminator=discriminator,

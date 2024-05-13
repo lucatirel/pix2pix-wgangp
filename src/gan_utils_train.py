@@ -250,8 +250,8 @@ def create_patches(
         Tuple[Tensor, Tensor]: A tuple containing two tensors, where the first tensor represents patches from noisy images and the second tensor represents patches from clean images. Both tensors have the shape (N*H'*W', 1, patch_size, patch_size), where H' and W' are the new height and width after unfolding.
     """
 
-    patch_size = (cfg["training"]["patch_size"],)
-    patch_stride = (cfg["training"]["patch_stride"],)
+    patch_size = cfg["training"]["patch_size"]
+    patch_stride = cfg["training"]["patch_stride"]
 
     noisy_img_patches = (
         noisy_imgs[img_index]
@@ -350,10 +350,10 @@ def train_discriminator(
 
     wgangp_flag = cfg["training"]["use_wgangp"]
     gp_weight = cfg["training"]["gp_weight"]
+    clamp_weights = cfg["training"]["clamp_weights"]
     clamp_value = cfg["training"]["clamp_value"]
 
     optimizer_D.zero_grad()
-
     D_real = discriminator(clean_img_patches, noisy_img_patches)
     D_real_loss = adv_loss_criterion(D_real, True)
 
@@ -380,7 +380,7 @@ def train_discriminator(
     optimizer_D.step()
 
     # # Clip weights of discriminator in WGAN
-    if wgangp_flag and clamp_value != "":
+    if wgangp_flag and clamp_weights and clamp_value != "":
         for p in discriminator.parameters():
             p.data.clamp_(-clamp_value, clamp_value)
 
